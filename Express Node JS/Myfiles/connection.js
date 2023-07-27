@@ -10,5 +10,5 @@ async function testConnection() {
     console.error('Unable to connect to the database:', error);
   }
 }
-
 testConnection();
+module.exports=sequelize

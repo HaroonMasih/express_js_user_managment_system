@@ -151,17 +151,24 @@ router.get("/user-searchWith-emailPart", async (req, res) => {
 // Log user login
 router.post("/users-login", async (req, res) => {
   const { email } = req.body;
-
   try {
     const user = await User.findOne({ where: { email } });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+    console.log("user printed here");
+    console.log(user);
 
-    await UserLog.create({ action: "login", id: user.id }); // Create a new log entry
+    console.log("\n and");
+    console.log(user.id);
+    console.log(UserLog.getAttributes);
+
+    await UserLog.create({ action: "login", userId: user.id }); // Create a new log entry
 
     res.json({ message: "User logged in successfully" });
   } catch (error) {
+    console.log("\n\n");
+    console.log(error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -176,29 +183,71 @@ router.post("/users-logout", async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    await UserLog.create({ action: "logout", id: user.id }); // Create a new log entry
+    await UserLog.create({ action: "logout", userId: user.id }); // Create a new log entry
 
     res.json({ message: "User logged out successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
-router.get('/users/:email/logs', async (req, res) => {
-    const email = req.params.email;
-  
-    try {
-      const user = await User.findOne({ where: { email } });
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-  
-      const logs = await UserLog.findAll({ where: { id: user.id } }); // Corrected attribute
-  
-      res.json(logs);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
+router.get("/users/:email/logs", async (req, res) => {
+  const email = req.params.email;
+
+  try {
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
-  });
+
+    const logs = await UserLog.findAll({ where: { userId: user.id } }); // Corrected attribute
+
+    res.json(logs);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get 5 recent logs of a user
+router.get("/users/:email/logs/recent", async (req, res) => {
+  const email = req.params.email;
+
+  try {
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const logs = await UserLog.findAll({
+      where: { UserId: user.id },
+      order: [["timestamp", "DESC"]],
+      limit: 5,
+    });
+
+    res.json(logs);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Delete a specific log
+router.delete("/users/delete-logs/:logId", async (req, res) => {
+  const logId = req.params.logId;
+
+  try {
+    // Find the log entry to be deleted
+    const log = await UserLog.findByPk(logId);
+    if (!log) {
+      return res.status(404).json({ message: "Log entry not found" });
+    }
+
+    // Delete the log entry
+    await log.destroy();
+
+    res.json({ message: "Log entry deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 // TODO: Implement other APIs (e.g., search by name, search by email, retrieve archived users)
 
